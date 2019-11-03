@@ -38,9 +38,9 @@ class HalideBackendRep(BackendRep):
         value_info = {i.name: i.type for i in list(model.graph.input) +
                       list(model.graph.output) + list(model.graph.value_info)}
 
-        code, objects, headers = visitor.visit(model.graph, value_info)
+        code, objects, headers, graph_header = visitor.visit(model.graph, value_info)
 
-        code = ["#include {}".format(h) for h in headers] + \
+        code = ["#include {}".format(h) for h in headers | graph_header] + \
                code
 
         src = '\n'.join(code)
@@ -50,6 +50,7 @@ class HalideBackendRep(BackendRep):
         self.temp_dir   = temp_dir
         self.headers    = headers
         self.libraries    = set([Environment.compile_library(src, objects, self.temp_dir)])
+        self.run_headers = set(["<stdlib.h>", "<stdio.h>"]) | graph_header
 
     def run(self, inputs: List[ndarray], **kwargs) -> List[ndarray]:
         code = []
@@ -62,7 +63,7 @@ class HalideBackendRep(BackendRep):
             print(name)
             if name in self.initializer_data:
                 ofile, hfile, ref_name = Environment.compile_constant_object(name, self.initializer_data[name], self.temp_dir)
-                self.headers.add("\"{}\"".format(hfile))
+                self.run_headers.add("\"{}\"".format(hfile))
                 self.libraries.add(ofile)
                 args.append("({} *) {}".format(vi.t.c, ref_name))
             else:
@@ -113,7 +114,7 @@ class HalideBackendRep(BackendRep):
                 ""])
         code.append("return 0;")
 
-        code = ["#include {}".format(h) for h in self.headers] + \
+        code = ["#include {}".format(h) for h in self.run_headers] + \
                ["int main(int argc, char** argv)"] + \
                ["{"] + \
                ["  " + c for c in code] + \

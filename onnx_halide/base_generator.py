@@ -100,7 +100,7 @@ class BaseGraphVisitor(BaseVisitor):
 
         return (code,
                 list(self.runtime_objects) + list(self.objects),
-                self.headers | self.runtime_headers | {"\"{}\"".format(api_header_fname)})
+                self.headers | self.runtime_headers, {"\"{}\"".format(api_header_fname)})
 
 
 class BaseNodeVisitor(BaseVisitor):

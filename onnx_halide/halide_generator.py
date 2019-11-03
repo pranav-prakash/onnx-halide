@@ -109,8 +109,8 @@ HALIDE_REGISTER_GENERATOR({0}, {0})
         objects = {join(self.temp_dir, "{}.o".format(gen_name))}
         headers = set(["\"{}\"".format(n) for n in
                        [join(self.temp_dir, "{}.h".format(gen_name)),
-                        join(self.install_dir, "include/HalideBuffer.h"),
-                        join(self.install_dir, "include/HalideRuntime.h")]])
+                        join(Environment.install_dir, "include/HalideBuffer.h"),
+                        join(Environment.install_dir, "include/HalideRuntime.h")]])
         return code, objects, headers
 
 

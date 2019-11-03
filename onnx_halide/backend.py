@@ -11,9 +11,10 @@ from .environment_link import Environment
 from onnx.onnx_ml_pb2 import ModelProto
 from onnx_halide.backend_rep import HalideBackendRep
 from google.protobuf.pyext._message import RepeatedScalarContainer
+from .halide_generator import HalideGraphVisitor
+from .accelerated_generator import AcceleratedGraphVisitor
 
 class HalideBackend(Backend):
-
     # @classmethod
     # def run_node(cls, node, input, device='CPU'):
     #     input_tensors = []
@@ -39,7 +40,7 @@ class HalideBackend(Backend):
 
     @classmethod
     def prepare(cls, model: ModelProto, device: str = 'CPU', **kwargs) -> HalideBackendRep:
-        return HalideBackendRep(onnx.utils.polish_model(cls.sanitize_model(model)))
+        return HalideBackendRep(onnx.utils.polish_model(cls.sanitize_model(model)), visitor_cls = HalideGraphVisitor)
 
     @classmethod
     def sanitize_model(cls, model: ModelProto) -> ModelProto:

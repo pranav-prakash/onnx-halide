@@ -9,6 +9,7 @@ from os.path import dirname, join, abspath
 
 from .types import VI, from_onnx_t
 from .halide_generator import HalideGraphVisitor
+from .base_generator import BaseGraphVisitor
 from .environment_link import Environment
 
 from numpy import ndarray
@@ -16,14 +17,14 @@ from onnx.onnx_ml_pb2 import ModelProto
 from typing import List, Type
 
 class HalideBackendRep(BackendRep):
-    def __init__(self, model: ModelProto, temp_dir: str = "build", visitor: Type[HalideGraphVisitor] = HalideGraphVisitor, debug = True) -> None:
+    def __init__(self, model: ModelProto, temp_dir: str = "build", visitor_cls: Type[BaseGraphVisitor] = HalideGraphVisitor, debug = True) -> None:
         temp_dir = abspath(temp_dir)
         self.debug = debug
         self.name = "{}_{}_{}".format(model.graph.name,
                                       model.model_version,
                                       model.domain.replace('.', '-'))
 
-        visitor = HalideGraphVisitor(temp_dir=temp_dir, debug=debug)
+        visitor = visitor_cls(temp_dir=temp_dir, debug=debug)
         self.initializer_data = {}
         for init in model.graph.initializer:
             if init.raw_data:

@@ -12,8 +12,6 @@ from .buffer_manager import NaiveBufferManager
 from .environment_link import Environment
 
 class BaseVisitor:
-    install_dir = os.environ['RISCV']
-    cxx = "g++"
     def __init__(self, temp_dir: str = "temp", debug = False) -> None:
         self.temp_dir = abspath(temp_dir)
         self.debug = debug

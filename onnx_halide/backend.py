@@ -40,7 +40,7 @@ class HalideBackend(Backend):
 
     @classmethod
     def prepare(cls, model: ModelProto, device: str = 'CPU', **kwargs) -> HalideBackendRep:
-        return HalideBackendRep(onnx.utils.polish_model(cls.sanitize_model(model)), visitor_cls = HalideGraphVisitor)
+        return HalideBackendRep(onnx.utils.polish_model(cls.sanitize_model(model)), visitor_cls = AcceleratedGraphVisitor)
 
     @classmethod
     def sanitize_model(cls, model: ModelProto) -> ModelProto:

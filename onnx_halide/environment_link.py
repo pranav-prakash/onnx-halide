@@ -87,7 +87,7 @@ class Environment:
         with open(hfile, 'w') as f:
             f.write(header)
 
-        ofile = Environment.compile_object(cfile, cls.temp_dir)
+        ofile = Environment.compile_object(cfile)
         return ofile, hfile, ref_name
 
     @classmethod
@@ -132,16 +132,17 @@ class Environment:
         cmd  = "spike pk {}".format(src_bname)
         r = Environment.run_cmd(cmd)
 
+
+    @classmethod
+    def create_header_from_src(cls, hname, src):
+        content = "#ifndef {}\n#define {}{}\n#endif".format(hname.upper(), hname.upper(), src)
+        hfile = join(cls.temp_dir, "{}.h".format(hname))
+        with open(hfile, 'w') as f:
+            f.write(src)
+        return hfile
+
     @classmethod
     def get_debug_header(cls):
-        headers = """
-#include <stdlib.h>
-#include <malloc.h>
-#include <time.h>
-#include "util.h"
-#include <stdio.h>
-"""
-
         rdcycle = """
 inline int __attribute__((optimize("O0"))) rd_cycle() {
     int out = 0;
@@ -149,13 +150,7 @@ inline int __attribute__((optimize("O0"))) rd_cycle() {
     return out;
 }
 """
-
-        hname = "onnx_composer_debug"
-        src = "#ifndef ONNX_COMPOSER_DEBUG\n#define ONNX_COMPOSER_DEBUG{}\n#endif".format(rdcycle)
-        hfile = join(cls.temp_dir, "{}.h".format(hname))
-        with open(hfile, 'w') as f:
-            f.write(src)
-        return hfile
+        return cls.create_header_from_src("onnx_composer_debug", rdcycle)
     
 
     @classmethod

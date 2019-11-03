@@ -1,6 +1,6 @@
 import subprocess
 import os
-from os.path import join
+from os.path import join, abspath
 from typing import List, Type
 import re
 
@@ -14,6 +14,10 @@ class Environment:
     target_ld  = "riscv64-unknown-linux-gnu-ld"
     target_arch_triple = "-march=rv64imafdc -mabi=lp64 "
     install_dir = os.environ['RISCV']
+    temp_dir = abspath("build")
+    # Side-effects on import. relatively benign so should be fine.
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
 
     # TODO: Expand class as a means to configure various environment related settings such as
     # compilation target, and set appropriate env vars in subprocess call
@@ -26,10 +30,10 @@ class Environment:
             raise e
 
     @classmethod
-    def compile_library(cls, src: str, objects: List[str], temp_dir: str) -> str:
-        src_cname = join(temp_dir, "generated.c")
-        src_oname = join(temp_dir, "generated.o")
-        src_aname = join(temp_dir, "generated.a")
+    def compile_library(cls, src: str, objects: List[str]) -> str:
+        src_cname = join(cls.temp_dir, "generated.c")
+        src_oname = join(cls.temp_dir, "generated.o")
+        src_aname = join(cls.temp_dir, "generated.a")
         with open(src_cname, 'w') as f:
             f.write(src)
 
@@ -47,7 +51,7 @@ class Environment:
         return src_aname
 
     @classmethod
-    def compile_object(cls, c_name: str, temp_dir: str) -> str:
+    def compile_object(cls, c_name: str) -> str:
         o_name = c_name.replace(".c", ".o")
 
         cmd  = "{} -std=c++11 ".format(cls.target_cxx)
@@ -60,11 +64,11 @@ class Environment:
         return o_name
 
     @classmethod
-    def compile_constant_object(cls, name: str, array, temp_dir:str) -> str:
-        rfile = join(temp_dir, "{}.raw".format(name))
-        cfile = join(temp_dir, "{}.c".format(name))
-        hfile = join(temp_dir, "{}.h".format(name))
-        ofile = join(temp_dir, "{}.o".format(name))
+    def compile_constant_object(cls, name: str, array) -> str:
+        rfile = join(cls.temp_dir, "{}.raw".format(name))
+        cfile = join(cls.temp_dir, "{}.c".format(name))
+        hfile = join(cls.temp_dir, "{}.h".format(name))
+        ofile = join(cls.temp_dir, "{}.o".format(name))
 
         array.tofile(rfile)
 
@@ -83,13 +87,13 @@ class Environment:
         with open(hfile, 'w') as f:
             f.write(header)
 
-        ofile = Environment.compile_object(cfile, temp_dir)
+        ofile = Environment.compile_object(cfile, cls.temp_dir)
         return ofile, hfile, ref_name
 
     @classmethod
-    def compile_kernel(cls, src: str, gen_name: str, temp_dir: str):
-        src_fname = join(temp_dir, "{}.cpp".format(gen_name))
-        generator_bin = join(temp_dir, "{}.bin".format(gen_name))
+    def compile_kernel(cls, src: str, gen_name: str):
+        src_fname = join(cls.temp_dir, "{}.cpp".format(gen_name))
+        generator_bin = join(cls.temp_dir, "{}.bin".format(gen_name))
         with open(src_fname, 'w') as f:
             f.write(src)
 
@@ -106,16 +110,16 @@ class Environment:
 
         r = subprocess.run(cmd, check=True, shell=True)
 
-        cmd  = "{} -g {} -o {} ".format(generator_bin, gen_name, temp_dir)
+        cmd  = "{} -g {} -o {} ".format(generator_bin, gen_name, cls.temp_dir)
         cmd += "-e h,o "
         cmd += "target=riscv-64-linux-no_asserts-no_runtime-no_bounds_query"
 
         r = subprocess.run(cmd, check=True, shell=True)
 
     @classmethod
-    def run_model(cls, src: str, library_names: List[str], temp_dir: str) -> str:
-        src_fname = join(temp_dir, "main.c")
-        src_bname = join(temp_dir, "main.riscv")
+    def run_model(cls, src: str, library_names: List[str]) -> str:
+        src_fname = join(cls.temp_dir, "main.c")
+        src_bname = join(cls.temp_dir, "main.riscv")
         with open(src_fname, 'w') as f:
             f.write(src)
 
@@ -129,7 +133,7 @@ class Environment:
         r = Environment.run_cmd(cmd)
 
     @classmethod
-    def get_debug_header(cls, temp_dir: str):
+    def get_debug_header(cls):
         headers = """
 #include <stdlib.h>
 #include <malloc.h>
@@ -148,7 +152,7 @@ inline int __attribute__((optimize("O0"))) rd_cycle() {
 
         hname = "onnx_composer_debug"
         src = "#ifndef ONNX_COMPOSER_DEBUG\n#define ONNX_COMPOSER_DEBUG{}\n#endif".format(rdcycle)
-        hfile = join(temp_dir, "{}.h".format(hname))
+        hfile = join(cls.temp_dir, "{}.h".format(hname))
         with open(hfile, 'w') as f:
             f.write(src)
         return hfile

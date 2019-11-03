@@ -29,7 +29,7 @@ class AcceleratedNodeVisitor(BaseNodeVisitor):
         alg = self.generate_alg()
         if alg is None:
             '''If we can't handle a given node type, punt to Halide'''
-            return HalideGraphVisitor.node_lookup[node.op_type](temp_dir=self.temp_dir).visit(node, value_info)
+            return HalideGraphVisitor.node_lookup[node.op_type]().visit(node, value_info)
 
         import pdb; pdb.set_trace()
         code = []

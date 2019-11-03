@@ -12,11 +12,8 @@ from .buffer_manager import NaiveBufferManager
 from .environment_link import Environment
 
 class BaseVisitor:
-    def __init__(self, temp_dir: str = "temp", debug = False) -> None:
-        self.temp_dir = abspath(temp_dir)
+    def __init__(self, debug = False) -> None:
         self.debug = debug
-        if not os.path.exists(self.temp_dir):
-            os.makedirs(self.temp_dir)
 
     # Returns c call, object files, headers
     def visit(self, graph_or_node, value_info):
@@ -56,7 +53,7 @@ class BaseGraphVisitor(BaseVisitor):
         buffer_manager = NaiveBufferManager(value_info)
         for idx, node in enumerate(graph.node):
             node_outputs = list(node.output)
-            generator = self.node_lookup[node.op_type](temp_dir=self.temp_dir)
+            generator = self.node_lookup[node.op_type]()
             node_code, objects, headers = generator.visit(node, value_info)
             self.objects |= objects
             self.headers |= headers
@@ -87,12 +84,12 @@ class BaseGraphVisitor(BaseVisitor):
 
         api_header = '\n'.join(["#ifndef {}_H".format(graph.name),
                                 "#define {}_H".format(graph.name),
-                                "#include \"{}\"".format(Environment.get_debug_header(self.temp_dir)) if self.debug else "",
+                                "#include \"{}\"".format(Environment.get_debug_header()) if self.debug else "",
                                 "#include <stdint.h>".format(graph.name),
                                 "#define float16_t uint16_t",
                                 "void {}({});".format(graph.name, ','.join(cargs)),
                                 "#endif"])
-        api_header_fname = join(self.temp_dir, "{}.h".format(graph.name))
+        api_header_fname = join(Environment.temp_dir, "{}.h".format(graph.name))
         with open(api_header_fname, 'w') as f:
             f.write(api_header)
 
@@ -147,7 +144,7 @@ class ConstantVisitor(BaseNodeVisitor):
 
         gen_name = "constant_{}".format(self.outputs[0])
         ofile, hfile, ref_name = Environment.compile_constant_object(
-            gen_name, data, self.temp_dir)
+            gen_name, data)
 
 
         # TODO: Don't do memcpy. In that case just manipulate the pointer
@@ -179,7 +176,7 @@ class ConstantOfShapeVisitor(BaseNodeVisitor):
         gen_name = "constant_{}".format(self.outputs[0])
 
         ofile, hfile, ref_name = Environment.compile_constant_object(
-            gen_name, data, self.temp_dir)
+            gen_name, data)
 
         code = ["memcpy({0}, {1}, {1}_len);".format(
             self.outputs[0], ref_name)]
@@ -200,7 +197,7 @@ class EyeLikeVisitor(BaseNodeVisitor):
                       dtype=op.t.np)
         gen_name = "eye_{}".format(self.outputs[0])
         ofile, hfile, ref_name = Environment.compile_constant_object(
-            gen_name, data, self.temp_dir)
+            gen_name, data)
 
         code = ["memcpy({0}, {1}, {1}_len);".format(
             self.outputs[0], ref_name)]

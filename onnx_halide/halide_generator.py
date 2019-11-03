@@ -85,7 +85,7 @@ HALIDE_REGISTER_GENERATOR({0}, {0})
         src = src.format(gen_name, input_decls, output_decls, dim_var_decls,
                          '\n'.join(alg))
 
-        Environment.compile_kernel(src, gen_name, self.temp_dir)
+        Environment.compile_kernel(src, gen_name)
 
         code = []
         haargs   = []
@@ -106,9 +106,9 @@ HALIDE_REGISTER_GENERATOR({0}, {0})
         code.append("  {}({});".format(gen_name, ','.join(haargs)))
 
         code = ["{"] + code + ["};"]
-        objects = {join(self.temp_dir, "{}.o".format(gen_name))}
+        objects = {join(Environment.temp_dir, "{}.o".format(gen_name))}
         headers = set(["\"{}\"".format(n) for n in
-                       [join(self.temp_dir, "{}.h".format(gen_name)),
+                       [join(Environment.temp_dir, "{}.h".format(gen_name)),
                         join(Environment.install_dir, "include/HalideBuffer.h"),
                         join(Environment.install_dir, "include/HalideRuntime.h")]])
         return code, objects, headers

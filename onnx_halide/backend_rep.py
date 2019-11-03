@@ -17,14 +17,13 @@ from onnx.onnx_ml_pb2 import ModelProto
 from typing import List, Type
 
 class HalideBackendRep(BackendRep):
-    def __init__(self, model: ModelProto, temp_dir: str = "build", visitor_cls: Type[BaseGraphVisitor] = HalideGraphVisitor, debug = True) -> None:
-        temp_dir = abspath(temp_dir)
+    def __init__(self, model: ModelProto, visitor_cls: Type[BaseGraphVisitor] = HalideGraphVisitor, debug = True) -> None:
         self.debug = debug
         self.name = "{}_{}_{}".format(model.graph.name,
                                       model.model_version,
                                       model.domain.replace('.', '-'))
 
-        visitor = visitor_cls(temp_dir=temp_dir, debug=debug)
+        visitor = visitor_cls(debug=debug)
         self.initializer_data = {}
         for init in model.graph.initializer:
             if init.raw_data:
@@ -48,9 +47,8 @@ class HalideBackendRep(BackendRep):
 
         self.model      = model
         self.value_info = value_info
-        self.temp_dir   = temp_dir
         self.headers    = headers
-        self.libraries    = set([Environment.compile_library(src, objects, self.temp_dir)])
+        self.libraries    = set([Environment.compile_library(src, objects)])
         self.run_headers = set(["<stdlib.h>", "<stdio.h>"]) | graph_header
 
     def run(self, inputs: List[ndarray], **kwargs) -> List[ndarray]:
@@ -63,7 +61,7 @@ class HalideBackendRep(BackendRep):
             vi = VI(self.value_info[name])
             print(name)
             if name in self.initializer_data:
-                ofile, hfile, ref_name = Environment.compile_constant_object(name, self.initializer_data[name], self.temp_dir)
+                ofile, hfile, ref_name = Environment.compile_constant_object(name, self.initializer_data[name])
                 self.run_headers.add("\"{}\"".format(hfile))
                 self.libraries.add(ofile)
                 args.append("({} *) {}".format(vi.t.c, ref_name))
@@ -71,7 +69,7 @@ class HalideBackendRep(BackendRep):
                 array = inputs[input_index]
                 input_index += 1
 
-                raw_file = join(self.temp_dir, "{}.raw".format(name))
+                raw_file = join(Environment.temp_dir, "{}.raw".format(name))
                 array.tofile(raw_file)
 
                 # Who needs a free() when you can just kill the program?
@@ -101,7 +99,7 @@ class HalideBackendRep(BackendRep):
         for o, op in enumerate(list(self.model.graph.output)):
             name = op.name
             vi = VI(self.value_info[name])
-            raw_file = join(self.temp_dir, "{}.raw".format(name))
+            raw_file = join(Environment.temp_dir, "{}.raw".format(name))
 
             # For some reason I can't create files from within pk
             if not os.path.exists(raw_file):
@@ -123,13 +121,13 @@ class HalideBackendRep(BackendRep):
 
         src = '\n'.join(code)
         print("Compilation finished... running model")
-        Environment.run_model(src, self.libraries, self.temp_dir)
+        Environment.run_model(src, self.libraries)
 
         ret = []
         for op in list(self.model.graph.output):
             name = op.name
             vi = VI(self.value_info[name])
-            raw_file = join(self.temp_dir, "{}.raw".format(name))
+            raw_file = join(Environment.temp_dir, "{}.raw".format(name))
             ret.append(np.fromfile(raw_file, vi.t.np, -1).reshape(vi.shape))
 
         return ret

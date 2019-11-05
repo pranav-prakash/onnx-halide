@@ -49,16 +49,13 @@ class AcceleratedMatmulVisitor(AcceleratedNodeVisitor):
 
 template<typename T>
 inline void matmul(int dimI, int dimJ, int dimK, T in1, T in2, T out) {
-    printf("Hello from cpp matmul!\\n");
 	for (int i = 0; i < dimI; i++) {
 		for (int j = 0; j < dimJ; j++) {
 			out[i * dimJ + j] = 0;
 			for (int k = 0; k < dimK; k++) {
 				out[i * dimJ + j] += in1[i * dimK + k] * in2[k * dimJ + j];
 			}
-            //printf("%f ", out[i * dimJ + j]);
 		}
-        printf("\\n");
 	}
 }"""
             hfile = "\"{}\"".format(Environment.create_header_from_src("cppmatmul", matmul))
@@ -79,7 +76,6 @@ class AcceleratedReluVisitor(AcceleratedNodeVisitor):
 
 template<typename T>
 inline void relu(int len, T in, T out) {
-    printf("Hello from cpp relu!\\n");
 	for (int i = 0; i < len; i++) {
 		out[i] = in[i] < 0 ? 0 : in[i];
 	}
